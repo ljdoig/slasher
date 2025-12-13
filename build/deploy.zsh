@@ -24,6 +24,7 @@ wasm-bindgen \
     --out-dir web \
     --target web \
     target/wasm32-unknown-unknown/release/${name}.wasm
+echo "Optimizing wasm file..."
 wasm-opt -Oz -o web/${name}_bg_opt.wasm web/${name}_bg.wasm
 mv web/${name}_bg_opt.wasm web/${name}_bg.wasm
 # cat build/append.txt >> web/${name}.js
@@ -31,9 +32,13 @@ mv web/${name}_bg_opt.wasm web/${name}_bg.wasm
 rm -rf web/assets
 cp -r assets web/   
 
+TMPDIR=$(mktemp -d)
+cp -r web $TMPDIR/web
+sed -i '' s/web/$name/g $TMPDIR/web/index.html
+
 git switch web
-cp -r web/* .
-sed -i '' s/web/$name/g index.html
+cp -r $TMPDIR/web/* .
+rm -rf $TMPDIR
 
 git status
 printf "Do you want to commit these changes? [y/N] "

@@ -19,54 +19,64 @@ macro_rules! println { ($($args:tt)*) => { cprintln!($($args)*); } }
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest())) // prevents blurry sprites
         .add_systems(Startup, setup)
-        .add_systems(Update, sprite_movement)
+        .add_systems(Update, animate_sprite)
         .run();
 }
 
 #[derive(Component)]
-enum Direction {
-    Left,
-    Right,
+struct AnimationIndices {
+    first: usize,
+    last: usize,
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+#[derive(Component, Deref, DerefMut)]
+struct AnimationTimer(Timer);
+
+fn animate_sprite(
+    time: Res<Time>,
+    mut query: Query<(&AnimationIndices, &mut AnimationTimer, &mut Sprite)>,
+) {
+    for (indices, mut timer, mut sprite) in &mut query {
+        timer.tick(time.delta());
+
+        if timer.just_finished()
+            && let Some(atlas) = &mut sprite.texture_atlas
+        {
+            println!("Animating sprite: current index {}", atlas.index);
+            atlas.index = if atlas.index == indices.last {
+                indices.first
+            } else {
+                atlas.index + 1
+            };
+        }
+    }
+}
+
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    let texture = asset_server.load("adventurer.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(50, 37), 7, 11, None, None);
+    let texture_atlas_layout = texture_atlas_layouts.add(layout);
+    // Use only the subset of sprites in the sheet that make up the run animation
+    let animation_indices = AnimationIndices { first: 8, last: 13 };
+
     commands.spawn(Camera2d);
 
     commands.spawn((
-        Sprite::from_image(asset_server.load("adventurer.png")),
-        Transform::from_xyz(0., 0., 0.),
-        Direction::Right,
+        Sprite::from_atlas_image(
+            texture,
+            TextureAtlas {
+                layout: texture_atlas_layout,
+                index: animation_indices.first,
+            },
+        ),
+        Transform::from_scale(Vec3::splat(10.0)),
+        animation_indices,
+        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
     ));
-}
-
-/// The sprite is animated by changing its translation depending on the time that has passed since
-/// the last frame.
-fn sprite_movement(
-    time: Res<Time>,
-    mut sprite_position: Query<(&mut Direction, &mut Transform)>,
-    buttons: Res<ButtonInput<MouseButton>>,
-) {
-    for (mut logo, mut transform) in &mut sprite_position {
-        match *logo {
-            Direction::Right => transform.translation.x += 150. * time.delta_secs(),
-            Direction::Left => transform.translation.x -= 150. * time.delta_secs(),
-        }
-
-        if buttons.just_pressed(MouseButton::Left) {
-            match *logo {
-                Direction::Right => *logo = Direction::Left,
-                Direction::Left => *logo = Direction::Right,
-            }
-        }
-
-        if transform.translation.x > 200. {
-            println!("Changing direction to Left");
-            *logo = Direction::Left;
-        } else if transform.translation.x < -200. {
-            println!("Changing direction to Right");
-            *logo = Direction::Right;
-        }
-    }
 }

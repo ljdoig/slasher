@@ -23,7 +23,7 @@ wasm-bindgen \
     --no-typescript \
     --out-dir web \
     --target web \
-    target/wasm32-unknown-unknown/release/${name}.wasm
+    target/wasm32-unknown-unknown/debug/${name}.wasm
 # cat build/append.txt >> web/${name}.js
 
 rm -rf web/assets
