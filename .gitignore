@@ -1,0 +1,5 @@
+/target
+.vscode
+web/*.wasm
+web/*.js
+web/assets/*

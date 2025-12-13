@@ -1,0 +1,34 @@
+#!/bin/zsh
+set -e
+
+if [[ "$#" -lt 1 ]]; then
+    echo "Usage: $0 <project name>" >&2
+    exit 1
+fi
+
+name=$1
+echo "Building project: $name"
+
+# Check webpage uses right js file
+if ! grep -q "${name}.js" "web/index.html"; then
+  echo "Error: The file 'web/index.html' does not contain the required string: '${name}.js'."
+  exit 1 
+fi
+
+cargo build --target wasm32-unknown-unknown
+
+rm -f web/${name}_bg.wasm
+rm -f web/${name}.js
+wasm-bindgen \
+    --no-typescript \
+    --out-dir web \
+    --target web \
+    target/wasm32-unknown-unknown/release/${name}.wasm
+# cat build/append.txt >> web/${name}.js
+
+rm -rf web/assets
+cp -r assets web/   
+
+echo "Serving on http://localhost:8080/web/index.html"
+open http://localhost:8080/web &
+python3 -m http.server 8080
