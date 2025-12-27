@@ -3,3 +3,4 @@
 web/*.wasm
 web/*.js
 web/assets/*
+.DS_Store
