@@ -1,27 +1,70 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8">
+    <title>Slasher</title>
+    <link rel="icon" type="image/x-icon" href="/web/slasher/images/favicon.ico">
+
     <style>
+        #text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            font-size: 35px;
+            color: white;
+            transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            z-index: -1;
+            font-family: monospace;
+        }
+    </style>
+
+    <div id="overlay">
+        <div id="text">Loading...</div>
+    </div>
+
+    <style type="text/css">
+        body,
+        html {
+            height: 100%;
+        }
+
         body {
+            background: content-box radial-gradient(black, grey);
             margin: 0;
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-            height: 100vh;
+        }
+
+        .game-container {
+            width: 100%;
+            height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        canvas {
-            background-color: rgb(70, 63, 63);
+        #bevy {
+            width: 600px;
+            height: 500px;
         }
     </style>
+
+    <link rel="preload" href="/web/slasher_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+    <link rel="modulepreload" href="/web/slasher.js">
 </head>
 
-<script type="module">
-    import init from '/web/slasher.js';
-    init('/web/slasher_bg.wasm');
-</script>
+<body>
+    <div class="game-container">
+        <canvas id="bevy">
+            Javascript and support for canvas is required
+        </canvas>
+    </div>
+
+
+    <script type="module">
+        import init from '/web/slasher.js';
+        init('/web/slasher_bg.wasm');
+    </script>
+</body>
 
 </html>
