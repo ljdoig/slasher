@@ -45,6 +45,7 @@ fn main() {
         // .add_systems(PostStartup, setup)
         .add_systems(Update, animate_sprite)
         .add_systems(Update, exit_on_esc)
+        .add_systems(Update, apply_forces)
         .run();
 }
 
@@ -56,6 +57,9 @@ struct AnimationIndices {
 
 #[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
+
+#[derive(Component)]
+struct Player;
 
 fn animate_sprite(
     time: Res<Time>,
@@ -90,20 +94,32 @@ fn setup(
     let layout = TextureAtlasLayout::from_grid(UVec2::new(50, 37), 7, 11, None, None);
     let texture_atlas_layout = texture_atlas_layouts.add(layout);
     let animation_indices = AnimationIndices { first: 8, last: 13 }; // run animation frames
-    commands.spawn((
-        Sprite::from_atlas_image(
-            texture,
-            TextureAtlas {
-                layout: texture_atlas_layout,
-                index: animation_indices.first,
-            },
-        ),
-        Transform::from_xyz(-25.0, 18.5, 0.0).with_scale(Vec3::splat(5.0)),
-        animation_indices,
-        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-        RigidBody::Dynamic,
-        Collider::cuboid(18.0, 17.5),
-    ));
+    commands
+        .spawn((
+            Sprite::from_atlas_image(
+                texture,
+                TextureAtlas {
+                    layout: texture_atlas_layout,
+                    index: animation_indices.first,
+                },
+            ),
+            Transform::from_xyz(-25.0, WINDOW_HEIGHT as f32 / 2.0, 0.0)
+                .with_scale(Vec3::splat(5.0)),
+            animation_indices,
+            AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+            RigidBody::Dynamic,
+            Player,
+            ColliderMassProperties::Density(2.0),
+        ))
+        .with_children(|children| {
+            children
+                .spawn(Collider::cuboid(8.0, 13.0))
+                .insert(Transform::from_xyz(3.0, -4.5, 0.0))
+                .insert(ExternalImpulse {
+                    impulse: Vec2::new(0.0, 20000.0),
+                    torque_impulse: 14.0,
+                });
+        });
 
     // ground
     commands.spawn((
@@ -120,5 +136,18 @@ fn setup(
 fn exit_on_esc(keyboard_input: Res<ButtonInput<KeyCode>>, mut commands: Commands) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
         commands.write_message(AppExit::Success);
+    }
+}
+
+fn apply_forces(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut ext_impulses: Query<&mut ExternalImpulse, With<Player>>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        info!("Applying forces");
+        for mut ext_impulse in ext_impulses.iter_mut() {
+            ext_impulse.impulse = Vec2::new(100.0, 200000.0);
+            ext_impulse.torque_impulse = 0.4;
+        }
     }
 }
